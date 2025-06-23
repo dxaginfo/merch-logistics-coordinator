@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: merch-logistics-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - MONGODB_URI=mongodb://mongodb:27017/merch-logistics
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=1d
+      - JWT_REFRESH_EXPIRATION=7d
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - merch-network
+    volumes:
+      - ./server:/usr/src/app
+      - /usr/src/app/node_modules
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: merch-logistics-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    networks:
+      - merch-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: merch-logistics-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - merch-network
+
+  redis:
+    image: redis:alpine
+    container_name: merch-logistics-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - merch-network
+
+networks:
+  merch-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  redis-data:
